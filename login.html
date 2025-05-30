@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AirChain Login</title>
+  <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/fontawesome.css">
+  <link rel="stylesheet" href="assets/css/templatemo-574-mexant.css">
+</head>
+
+<body>
+  <section class="services" style="padding-top: 100px;">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-6">
+          <div class="service-item text-center">
+            <h2>Login to AirChain</h2>
+            <form id="loginForm">
+              <div class="form-group mb-3">
+                <input type="email" class="form-control" id="email" placeholder="Email" required />
+              </div>
+              <div class="form-group mb-3">
+                <input type="password" class="form-control" id="password" placeholder="Password" required />
+              </div>
+              <div class="form-group mb-3">
+                <select class="form-control" id="userType" required>
+                  <option value="">Select Role</option>
+                  <option value="user">AC Unit</option>
+                  <option value="maintainer">Maintenance Provider</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Login</button>
+              <div id="errorMessage" class="text-danger mt-2"></div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script type="module">
+  // Firebase config
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+  import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCQyIDY2M-zJi8mWN63aQ0WEaSp70iWxdA",
+    authDomain: "airchain-32b25.firebaseapp.com",
+    databaseURL: "https://airchain-32b25-default-rtdb.firebaseio.com/",
+    projectId: "airchain-32b25",
+    storageBucket: "airchain-32b25.appspot.com",
+    messagingSenderId: "940089732998",
+    appId: "1:940089732998:web:4bc0e1a869512ccbd70607"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  const loginForm = document.getElementById("loginForm");
+  const errorMessage = document.getElementById("errorMessage");
+
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const userType = document.getElementById("userType").value;
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, `users/${user.uid}`));
+
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        const role = userData.role;
+
+        if (role === userType) {
+          // Store UID and role locally if needed
+          localStorage.setItem("uid", user.uid);
+          localStorage.setItem("role", role);
+
+          // Redirect to the appropriate dashboard
+          if (role === "user") {
+            window.location.href = "user-dashboard.html";
+          } else if (role === "maintainer") {
+            window.location.href = "maintainer-dashboard.html";
+          }
+        } else {
+          errorMessage.textContent = "Incorrect role selected.";
+        }
+      } else {
+        errorMessage.textContent = "User role not found in database.";
+      }
+
+    } catch (error) {
+      errorMessage.textContent = "Login failed: " + error.message;
+    }
+  });
+</script>
